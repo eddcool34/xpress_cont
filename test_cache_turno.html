@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test de Cache y Turno - Sistema CMG</title>
+    <title>Test de Cache y Turno - Sistema Xpress Cont</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -119,7 +119,7 @@
 <body>
     <div class="container">
         <h1>🧪 Test de Cache y Turno</h1>
-        <p style="text-align: center; color: #6c757d;">Sistema CMG - Herramienta de Pruebas</p>
+        <p style="text-align: center; color: #6c757d;">Sistema Xpress Cont - Herramienta de Pruebas</p>
 
         <div class="info-box">
             <strong>ℹ️ Información:</strong> Esta herramienta te ayuda a verificar el estado de la cache y el turno del sistema.
@@ -137,7 +137,7 @@
                 🗑️ Limpiar Cache Completa
             </button>
             <button class="btn-success" onclick="irAlSistema()">
-                🚀 Ir al Sistema CMG
+                🚀 Ir al Sistema Xpress Cont
             </button>
         </div>
 
@@ -252,7 +252,7 @@
 
                 // Preguntar si quiere ir al sistema
                 setTimeout(() => {
-                    if (confirm('¿Deseas ir al Sistema CMG ahora?\n\nEl sistema te pedirá abrir un turno.')) {
+                    if (confirm('¿Deseas ir al Sistema Xpress Cont ahora?\n\nEl sistema te pedirá abrir un turno.')) {
                         irAlSistema();
                     }
                 }, 1000);
@@ -260,8 +260,8 @@
         }
 
         function irAlSistema() {
-            log('Redirigiendo al Sistema CMG...', 'info');
-            window.location.href = 'sistema_cmg.html';
+            log('Redirigiendo al Sistema Xpress Cont...', 'info');
+            window.location.href = 'xpress_cont.html';
         }
 
         // Verificar estado al cargar la página

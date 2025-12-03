@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema CMG - Paquetería</title>
+    <title>Sistema Xpress Cont - Paquetería</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -86,8 +86,8 @@
         ];
 
         // ========== CONFIGURACIÓN DE TURNOS Y CAJA ==========
-        const CAJEROS = ['Mariana', 'Edgar', 'Cris'];
-        const CONTRASEÑA_SISTEMA = 'cmg2025'; // ⚠️ Cambiar por una contraseña segura
+        const CAJEROS = ['Cajero 1', 'Cajero 2', 'Cajero 3'];
+        const CONTRASEÑA_SISTEMA = 'xpress2025'; // ⚠️ Cambiar por una contraseña segura
         const FONDO_INICIAL_DEFAULT = 1000;
 
         // Denominaciones de billetes y monedas mexicanas
@@ -594,7 +594,7 @@
                 costo: '',
                 impuesto: '0',
                 metodoPago: 'efectivo',
-                vendedor: 'Mariana', // Vendedor por defecto
+                vendedor: 'Vendedor 1', // Vendedor por defecto
                 comision: '0', // Comisión calculada automáticamente
                 // Campos para devolución
                 paqueteriaDevolucion: 'fedex',
@@ -1396,7 +1396,7 @@
 
                     doc.setFontSize(20);
                     doc.setFont(undefined, 'bold');
-                    doc.text('COMPROBANTE DE ENVÍO - CMG', 105, 30, { align: 'center' });
+                    doc.text('COMPROBANTE DE ENVÍO - XPRESS CONT', 105, 30, { align: 'center' });
                     
                     doc.setDrawColor(0, 0, 0);
                     doc.line(20, 35, 190, 35);
@@ -1572,7 +1572,7 @@
                     } else {
                         doc.text('TICKET DE PAGO', 40, 10, { align: 'center' });
                     }
-                    doc.text('PAQUETERÍA CMG', 40, 16, { align: 'center' });
+                    doc.text('PAQUETERÍA XPRESS CONT', 40, 16, { align: 'center' });
 
                     doc.setFontSize(8);
                     doc.setFont(undefined, 'normal');
@@ -1932,7 +1932,7 @@
 
             // Función para obtener estadísticas de ventas por vendedor
             const getEstadisticasVendedores = () => {
-                const vendedores = ['Mariana', 'Cris', 'Edgar'];
+                const vendedores = ['Vendedor 1', 'Vendedor 2', 'Vendedor 3'];
                 const ventasActivas = ventas.filter(v => v.estadoVenta !== 'cancelada' && v.tipoOperacion !== 'entrega');
 
                 const estadisticas = vendedores.map(vendedor => {
@@ -2704,9 +2704,9 @@
                                     <div dangerouslySetInnerHTML={{ __html: logoSVG }} />
                                     <div>
                                         <h1 className="text-3xl font-bold text-gray-800">
-                                            Sistema CMG
+                                            Sistema Xpress Cont
                                         </h1>
-                                        <p className="text-lg text-gray-600">Paquetería CMG</p>
+                                        <p className="text-lg text-gray-600">Paquetería Xpress Cont</p>
                                         <p className="text-xs text-green-600 mt-1">
                                             <i className="fas fa-cloud mr-1"></i>
                                             Conectado a Google Sheets

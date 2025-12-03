@@ -1,20 +1,20 @@
-# Análisis Completo del Formulario de Entregas - Sistema CMG
+# Análisis Completo del Formulario de Entregas - Sistema Xpress Cont
 
-**Fecha**: 2024-11-07  
-**Rama**: claude/refactor-delivery-form-011CUtxu2eUFoh5JnNCVY6Ur  
-**Archivo Principal**: `/home/user/sistema_cmg/sistema_cmg.html`
+**Fecha**: 2024-11-07
+**Rama**: claude/refactor-delivery-form-011CUtxu2eUFoh5JnNCVY6Ur
+**Archivo Principal**: `/home/user/xpress_cont/xpress_cont.html`
 
 ---
 
 ## RESUMEN EJECUTIVO
 
-El sistema CMG contiene la funcionalidad de "Entregas" integrada en un único archivo HTML que contiene una aplicación React. Las entregas son un tipo de operación (junto con Envíos y Devoluciones) que permite registrar entregas directas de paquetes con datos específicos del receptor.
+El sistema Xpress Cont contiene la funcionalidad de "Entregas" integrada en un único archivo HTML que contiene una aplicación React. Las entregas son un tipo de operación (junto con Envíos y Devoluciones) que permite registrar entregas directas de paquetes con datos específicos del receptor.
 
 ### Información Crítica
 
 | Aspecto | Detalle |
 |---------|---------|
-| Ubicación | `/home/user/sistema_cmg/sistema_cmg.html` (único archivo) |
+| Ubicación | `/home/user/xpress_cont/xpress_cont.html` (único archivo) |
 | Tipo | React SPA integrada en HTML |
 | Tamaño | ~2400 líneas |
 | Tipos de Operación | envio, devolucion, entrega |
@@ -40,7 +40,7 @@ El sistema CMG contiene la funcionalidad de "Entregas" integrada en un único ar
 
 ## UBICACIÓN DEL CÓDIGO
 
-**Archivo único**: `/home/user/sistema_cmg/sistema_cmg.html`
+**Archivo único**: `/home/user/xpress_cont/xpress_cont.html`
 
 Este archivo contiene:
 - HTML (estructura)
@@ -743,17 +743,17 @@ Para entregas, la tabla de contenido (cantidad, producto, costo, peso) podría n
 ### CORTO PLAZO (Inmediato)
 
 1. **Fijar búsqueda para entregas**
-   - Archivo: `/home/user/sistema_cmg/sistema_cmg.html`
+   - Archivo: `/home/user/xpress_cont/xpress_cont.html`
    - Línea: 933
    - Cambio: Agregar búsqueda en `nombreEntrega` y `telefonoEntrega`
 
 2. **Mostrar "Entrega" correctamente en tabla**
-   - Archivo: `/home/user/sistema_cmg/sistema_cmg.html`
+   - Archivo: `/home/user/xpress_cont/xpress_cont.html`
    - Línea: 2300-2308
    - Cambio: Agregar caso para `tipoOperacion === 'entrega'`
 
 3. **Mejorar etiqueta del formulario**
-   - Archivo: `/home/user/sistema_cmg/sistema_cmg.html`
+   - Archivo: `/home/user/xpress_cont/xpress_cont.html`
    - Línea: 1229
    - Cambio: Mostrar "Información General" para entregas
 
@@ -782,7 +782,7 @@ Para entregas, la tabla de contenido (cantidad, producto, costo, peso) podría n
 
 ## CONCLUSIÓN
 
-El formulario de entregas está correctamente implementado en el sistema CMG, con:
+El formulario de entregas está correctamente implementado en el sistema Xpress Cont, con:
 
 ✅ Campos específicos y obligatorios
 ✅ Validación de datos
@@ -794,5 +794,5 @@ Con los ajustes recomendados, la experiencia del usuario mejorará significativa
 
 ---
 
-**Generado**: 2024-11-07  
+**Generado**: 2024-11-07
 **Rama**: claude/refactor-delivery-form-011CUtxu2eUFoh5JnNCVY6Ur

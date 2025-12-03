@@ -1,10 +1,10 @@
-# 📦 Sistema CMG - Gestión de Paquetería
+# 📦 Sistema Xpress Cont - Gestión de Paquetería
 
 Sistema completo para registrar y gestionar ventas de envíos de paquetería con control de turnos, caja y reportes.
 
 ## 🚀 Inicio Rápido
 
-1. Abre `sistema_cmg.html` en tu navegador
+1. Abre `xpress_cont.html` en tu navegador
 2. **Primera vez:** El sistema te pedirá abrir un turno (apertura obligatoria)
 3. Ingresa las credenciales del cajero y el fondo inicial
 4. ¡Comienza a trabajar!
@@ -42,7 +42,7 @@ Herramienta simple para limpiar todos los datos del localStorage:
 
 ## 📁 Archivos del Sistema
 
-- `sistema_cmg.html` - Sistema principal
+- `xpress_cont.html` - Sistema principal
 - `test_cache_turno.html` - Herramienta de pruebas y debug
 - `limpiar_datos.html` - Limpieza de cache
 - `test_turno.html` - Tests de funcionalidad de turnos
@@ -53,7 +53,7 @@ Herramienta simple para limpiar todos los datos del localStorage:
 1. Abre `test_cache_turno.html`
 2. Haz clic en "🗑️ Limpiar Cache Completa"
 3. Confirma la acción
-4. Haz clic en "🚀 Ir al Sistema CMG"
+4. Haz clic en "🚀 Ir al Sistema Xpress Cont"
 5. ✅ Verás la pantalla de apertura de turno obligatoria
 
 ## 💡 Consejos
