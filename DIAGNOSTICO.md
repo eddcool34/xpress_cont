@@ -20,7 +20,7 @@ Por favor responde estas preguntas para identificar el problema:
 
 **1. ¿Qué ves cuando abres el archivo?**
    - [ ] Página completamente en blanco
-   - [ ] Ves el header "Sistema CMG" pero sin el indicador de turno
+   - [ ] Ves el header "Sistema Xpress Cont" pero sin el indicador de turno
    - [ ] Ves todo el sistema pero los botones no responden
    - [ ] Ves un error en pantalla
 
@@ -52,14 +52,14 @@ Por favor responde estas preguntas para identificar el problema:
    - Si NO: Puede ser un problema del navegador o permisos
 
 **PRUEBA 2: Verificar Consola del Navegador**
-1. Abre `sistema_cmg.html`
+1. Abre `xpress_cont.html`
 2. Presiona F12
 3. Ve a la pestaña "Console"
 4. Busca mensajes en rojo
 5. Toma captura o copia el texto
 
 **PRUEBA 3: Verificar si React se carga**
-1. Abre `sistema_cmg.html`
+1. Abre `xpress_cont.html`
 2. Presiona F12 → Console
 3. Escribe: `React`
 4. Presiona Enter
