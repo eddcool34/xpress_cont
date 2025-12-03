@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="description" content="Sistema CMG - Portal de acceso para gestión de paquetería y logística">
+    <title>Sistema CMG - Portal de Acceso</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .logo {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .subtitle {
+            font-size: 20px;
+            opacity: 0.9;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+        }
+
+        .card-icon {
+            font-size: 50px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .card-description {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .card.primary .card-icon {
+            color: #667eea;
+        }
+
+        .card.success .card-icon {
+            color: #28a745;
+        }
+
+        .card.warning .card-icon {
+            color: #ffc107;
+        }
+
+        .card.info .card-icon {
+            color: #17a2b8;
+        }
+
+        .footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.9);
+            margin-top: 40px;
+        }
+
+        .quick-access {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+        }
+
+        .quick-access-btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 15px;
+        }
+
+        .quick-access-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(255,255,255,0.3);
+        }
+
+        /* Estados :focus para accesibilidad */
+        .card:focus {
+            outline: 3px solid #667eea;
+            outline-offset: 2px;
+        }
+
+        .quick-access-btn:focus {
+            outline: 3px solid #fff;
+            outline-offset: 2px;
+        }
+
+        /* Soporte para prefers-reduced-motion */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Mejoras para dispositivos táctiles */
+        @media (hover: none) {
+            .card:hover {
+                transform: none;
+            }
+
+            .card:active {
+                transform: scale(0.98);
+            }
+
+            .quick-access-btn:hover {
+                transform: none;
+            }
+
+            .quick-access-btn:active {
+                transform: scale(0.95);
+            }
+        }
+
+        /* Mejoras responsive para tablets */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 36px;
+            }
+
+            .logo {
+                font-size: 60px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .cards-grid {
+                gap: 15px;
+            }
+        }
+
+        /* Mejoras responsive para móviles */
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 28px;
+            }
+
+            .subtitle {
+                font-size: 16px;
+            }
+
+            .quick-access-btn {
+                padding: 12px 30px;
+                font-size: 16px;
+            }
+
+            .card {
+                padding: 15px;
+            }
+
+            .card-icon {
+                font-size: 40px;
+                margin-bottom: 15px;
+            }
+
+            .card-title {
+                font-size: 18px;
+            }
+
+            .card-description {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <header class="header">
+            <div class="logo">📦</div>
+            <h1>Sistema CMG</h1>
+            <p class="subtitle">Tu mejor socio en logística</p>
+        </header>
+
+        <section class="cards-grid">
+            <a href="sistema_cmg.html" class="card primary" aria-label="Acceder al Sistema Principal de gestión de paquetería y ventas">
+                <div class="card-icon">
+                    <i class="fas fa-desktop"></i>
+                </div>
+                <div class="card-title">Sistema Principal</div>
+                <div class="card-description">
+                    Accede al sistema completo de gestión de paquetería, ventas y control de caja.
+                </div>
+            </a>
+
+            <a href="test_cache_turno.html" class="card info" aria-label="Acceder a herramientas de Pruebas y Debug del sistema">
+                <div class="card-icon">
+                    <i class="fas fa-vial"></i>
+                </div>
+                <div class="card-title">Pruebas & Debug</div>
+                <div class="card-description">
+                    Herramienta interactiva para verificar estado del sistema y limpiar cache.
+                </div>
+            </a>
+
+            <a href="limpiar_datos.html" class="card warning" aria-label="Acceder a la herramienta de Limpieza de Datos del sistema">
+                <div class="card-icon">
+                    <i class="fas fa-broom"></i>
+                </div>
+                <div class="card-title">Limpiar Datos</div>
+                <div class="card-description">
+                    Elimina toda la información almacenada y reinicia el sistema.
+                </div>
+            </a>
+
+            <a href="test_turno.html" class="card success" aria-label="Acceder a las herramientas de Test de Turnos">
+                <div class="card-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="card-title">Test de Turnos</div>
+                <div class="card-description">
+                    Prueba y verifica el funcionamiento del sistema de turnos.
+                </div>
+            </a>
+
+            <a href="clientes.html" class="card primary" aria-label="Acceder a la gestión de Clientes y consultar su historial">
+                <div class="card-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="card-title">Clientes</div>
+                <div class="card-description">
+                    Consulta toda la información de clientes registrados y su historial de compras.
+                </div>
+            </a>
+
+            <a href="backup_datos.html" class="card success" aria-label="Acceder al sistema de Respaldo de Datos">
+                <div class="card-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="card-title">Respaldo de Datos</div>
+                <div class="card-description">
+                    Exporta, importa y asegura toda tu información con copias de seguridad.
+                </div>
+            </a>
+        </section>
+
+        <div class="quick-access">
+            <h3 style="margin-bottom: 10px;">
+                <i class="fas fa-rocket"></i> Acceso Rápido
+            </h3>
+            <p>¿Listo para trabajar?</p>
+            <button class="quick-access-btn" onclick="window.location.href='sistema_cmg.html'">
+                <i class="fas fa-sign-in-alt"></i> Ir al Sistema
+            </button>
+        </div>
+
+        <footer class="footer">
+            <p>
+                <i class="fas fa-info-circle"></i>
+                Sistema de gestión integral para paquetería y logística
+            </p>
+            <p style="margin-top: 10px; font-size: 12px;">
+                v2.1 - Gestión de Clientes y Respaldo de Datos
+            </p>
+        </footer>
+    </main>
+
+    <script>
+        // Mejorar la animación de entrada con IntersectionObserver
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.card');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry, index) => {
+                    if (entry.isIntersecting) {
+                        setTimeout(() => {
+                            entry.target.style.opacity = '1';
+                            entry.target.style.transform = 'translateY(0)';
+                        }, index * 100);
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, {
+                threshold: 0.1
+            });
+
+            cards.forEach(card => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'all 0.5s ease';
+                observer.observe(card);
+            });
+        });
+    </script>
+</body>
+</html>
