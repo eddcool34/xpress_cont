@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ejemplo - Xpress Shipping API</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Cargar configuración y servicio -->
+    <script src="config/xpress-shipping-api.js"></script>
+    <script src="services/xpress-shipping-service.js"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6 text-blue-600">🚚 Ejemplo - Xpress Shipping API</h1>
+
+        <!-- Panel de Estado -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Estado del Servicio</h2>
+            <div id="status" class="font-mono text-sm bg-gray-100 p-4 rounded">
+                Inicializando...
+            </div>
+        </div>
+
+        <!-- Sección de Pruebas -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Pruebas de Funcionalidad</h2>
+
+            <div class="space-y-4">
+                <!-- Test 1: Autenticación -->
+                <div class="border-b pb-4">
+                    <h3 class="font-semibold mb-2">1. Autenticación OAuth</h3>
+                    <button onclick="testAuth()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                        Probar Autenticación
+                    </button>
+                    <div id="auth-result" class="mt-2 text-sm"></div>
+                </div>
+
+                <!-- Test 2: Cotización -->
+                <div class="border-b pb-4">
+                    <h3 class="font-semibold mb-2">2. Crear Cotización</h3>
+                    <button onclick="testQuotation()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
+                        Crear Cotización de Prueba
+                    </button>
+                    <div id="quotation-result" class="mt-2 text-sm"></div>
+                </div>
+
+                <!-- Test 3: Flujo Completo -->
+                <div class="pb-4">
+                    <h3 class="font-semibold mb-2">3. Flujo Completo (Cotización + Envío)</h3>
+                    <button onclick="testFullFlow()" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded">
+                        Ejecutar Flujo Completo
+                    </button>
+                    <div id="fullflow-result" class="mt-2 text-sm"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Logs de Consola</h2>
+                <button onclick="clearLogs()" class="text-sm bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded">
+                    Limpiar
+                </button>
+            </div>
+            <div id="logs" class="font-mono text-xs bg-gray-900 text-green-400 p-4 rounded h-64 overflow-y-auto">
+                Esperando acciones...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variable global para el servicio
+        let shippingService = null;
+
+        // Logging personalizado
+        const logs = [];
+        const originalLog = console.log;
+        const originalError = console.error;
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addLog('INFO', args.join(' '));
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addLog('ERROR', args.join(' '));
+        };
+
+        function addLog(type, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'ERROR' ? 'text-red-400' : 'text-green-400';
+            logs.push(`<span class="${color}">[${timestamp}] [${type}]</span> ${message}`);
+            updateLogsDisplay();
+        }
+
+        function updateLogsDisplay() {
+            const logsDiv = document.getElementById('logs');
+            logsDiv.innerHTML = logs.join('\n');
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function clearLogs() {
+            logs.length = 0;
+            updateLogsDisplay();
+        }
+
+        // Actualizar estado del servicio
+        function updateStatus() {
+            if (!shippingService) {
+                document.getElementById('status').innerHTML =
+                    '<span class="text-red-600">❌ Servicio no inicializado</span>';
+                return;
+            }
+
+            const status = shippingService.getStatus();
+            document.getElementById('status').innerHTML = `
+                <div class="space-y-2">
+                    <p><strong>Inicializado:</strong> ${status.initialized ? '✅ Sí' : '❌ No'}</p>
+                    <p><strong>Token activo:</strong> ${status.hasToken ? '✅ Sí' : '❌ No'}</p>
+                    <p><strong>Expiración:</strong> ${status.tokenExpiry || 'N/A'}</p>
+                    <p><strong>Expirando pronto:</strong> ${status.tokenExpiringSoon ? '⚠️ Sí' : '✅ No'}</p>
+                </div>
+            `;
+        }
+
+        // Test 1: Autenticación
+        async function testAuth() {
+            const resultDiv = document.getElementById('auth-result');
+            resultDiv.innerHTML = '<span class="text-yellow-600">⏳ Autenticando...</span>';
+
+            try {
+                await shippingService.initialize();
+                resultDiv.innerHTML = '<span class="text-green-600">✅ Autenticación exitosa</span>';
+                updateStatus();
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="text-red-600">❌ Error: ${error.message}</span>`;
+            }
+        }
+
+        // Test 2: Crear Cotización
+        async function testQuotation() {
+            const resultDiv = document.getElementById('quotation-result');
+            resultDiv.innerHTML = '<span class="text-yellow-600">⏳ Creando cotización...</span>';
+
+            try {
+                // Datos de prueba
+                const quotationData = {
+                    origin: {
+                        name: "Juan Pérez",
+                        company: "Xpress Cont",
+                        email: "juan@xpress.com",
+                        phone: "5551234567",
+                        street: "Calle Principal",
+                        number: "123",
+                        district: "Centro",
+                        city: "Ciudad de México",
+                        state: "CDMX",
+                        country: "MX",
+                        postalCode: "01000"
+                    },
+                    destination: {
+                        name: "María González",
+                        company: "Empresa ABC",
+                        email: "maria@example.com",
+                        phone: "5559876543",
+                        street: "Avenida Reforma",
+                        number: "456",
+                        district: "Juárez",
+                        city: "Guadalajara",
+                        state: "Jalisco",
+                        country: "MX",
+                        postalCode: "44100"
+                    },
+                    packages: [
+                        {
+                            content: "Documentos de prueba",
+                            amount: 1,
+                            type: "box",
+                            weight: 1,
+                            insurance: 0,
+                            declaredValue: 100,
+                            weightUnit: "KG",
+                            lengthUnit: "CM",
+                            dimensions: {
+                                length: 20,
+                                width: 15,
+                                height: 10
+                            }
+                        }
+                    ]
+                };
+
+                const quotation = await shippingService.createQuotation(quotationData);
+
+                resultDiv.innerHTML = `
+                    <div class="text-green-600">
+                        ✅ Cotización creada<br>
+                        <strong>ID:</strong> ${quotation.id}<br>
+                        <strong>Completada:</strong> ${quotation.is_completed ? 'Sí' : 'No'}
+                    </div>
+                `;
+
+                // Si no está completa, esperar
+                if (!quotation.is_completed) {
+                    resultDiv.innerHTML += '<div class="text-yellow-600 mt-2">⏳ Esperando completar cotización...</div>';
+
+                    const completed = await shippingService.waitForQuotationCompletion(quotation.id);
+
+                    resultDiv.innerHTML = `
+                        <div class="text-green-600">
+                            ✅ Cotización completada<br>
+                            <strong>ID:</strong> ${completed.id}<br>
+                            <strong>Rates disponibles:</strong> ${completed.rates.length}
+                        </div>
+                    `;
+
+                    // Mostrar rates
+                    if (completed.rates.length > 0) {
+                        const ratesHTML = completed.rates.map(r =>
+                            `<li>${r.carrier} - ${r.service_level_name}: $${r.total_pricing} (${r.days} días)</li>`
+                        ).join('');
+                        resultDiv.innerHTML += `
+                            <div class="mt-2 text-gray-700">
+                                <strong>Rates:</strong>
+                                <ul class="list-disc ml-5">${ratesHTML}</ul>
+                            </div>
+                        `;
+                    }
+                }
+
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="text-red-600">❌ Error: ${error.message}</span>`;
+            }
+        }
+
+        // Test 3: Flujo Completo
+        async function testFullFlow() {
+            const resultDiv = document.getElementById('fullflow-result');
+            resultDiv.innerHTML = '<span class="text-yellow-600">⏳ Ejecutando flujo completo...</span>';
+
+            try {
+                const quotationData = {
+                    origin: {
+                        name: "Test Sender",
+                        phone: "5551234567",
+                        street: "Test Street",
+                        number: "123",
+                        district: "Test District",
+                        city: "Ciudad de México",
+                        state: "CDMX",
+                        country: "MX",
+                        postalCode: "01000"
+                    },
+                    destination: {
+                        name: "Test Receiver",
+                        phone: "5559876543",
+                        street: "Test Avenue",
+                        number: "456",
+                        district: "Test District",
+                        city: "Guadalajara",
+                        state: "Jalisco",
+                        country: "MX",
+                        postalCode: "44100"
+                    },
+                    packages: [
+                        {
+                            content: "Test Package",
+                            amount: 1,
+                            type: "box",
+                            weight: 1,
+                            insurance: 0,
+                            declaredValue: 100,
+                            weightUnit: "KG",
+                            lengthUnit: "CM",
+                            dimensions: { length: 20, width: 15, height: 10 }
+                        }
+                    ]
+                };
+
+                const result = await shippingService.createQuotationAndShipment(
+                    quotationData,
+                    (rates) => rates[0], // Seleccionar el primer rate
+                    {
+                        carrier_name: 'fedex',
+                        consignment_note: 'CNT001',
+                        package_type: 'PKG001'
+                    }
+                );
+
+                resultDiv.innerHTML = `
+                    <div class="text-green-600">
+                        ✅ Flujo completado exitosamente<br><br>
+                        <strong>Cotización ID:</strong> ${result.quotation.id}<br>
+                        <strong>Rate seleccionado:</strong> ${result.selectedRate.carrier} - $${result.selectedRate.total_pricing}<br>
+                        <strong>Envío ID:</strong> ${result.shipment.id}<br>
+                        <strong>Número de guía:</strong> ${result.shipment.tracking_number}<br>
+                        <strong>Etiqueta:</strong> <a href="${result.shipment.label_url}" target="_blank" class="text-blue-600 underline">Ver etiqueta</a>
+                    </div>
+                `;
+
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="text-red-600">❌ Error: ${error.message}</span>`;
+            }
+        }
+
+        // Inicializar al cargar la página
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                addLog('INFO', 'Iniciando aplicación de prueba...');
+
+                // Verificar si la configuración está disponible
+                if (typeof XPRESS_SHIPPING_CONFIG === 'undefined') {
+                    addLog('ERROR', 'Configuración no encontrada. Asegúrate de que config/xpress-shipping-api.js esté cargado.');
+                    return;
+                }
+
+                // Verificar credenciales
+                if (!XpressShippingConfigUtils.areCredentialsConfigured()) {
+                    addLog('ERROR', 'Credenciales no configuradas. Por favor, edita config/xpress-shipping-api.js');
+                    document.getElementById('status').innerHTML =
+                        '<span class="text-red-600">❌ Credenciales no configuradas. Edita config/xpress-shipping-api.js</span>';
+                    return;
+                }
+
+                // Crear instancia del servicio
+                shippingService = new XpressShippingService();
+                addLog('INFO', 'Servicio creado');
+
+                // Inicializar
+                await shippingService.initialize();
+                addLog('INFO', 'Servicio inicializado correctamente');
+
+                updateStatus();
+
+            } catch (error) {
+                addLog('ERROR', `Error al inicializar: ${error.message}`);
+            }
+        });
+    </script>
+</body>
+</html>
