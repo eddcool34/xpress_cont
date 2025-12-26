@@ -24,8 +24,8 @@ Edita `config/xpress-shipping-api.js` y reemplaza:
 
 ```javascript
 OAUTH_CREDENTIALS: {
-  CLIENT_ID: 'TU_CLIENT_ID_AQUI',         // ← Reemplazar
-  CLIENT_SECRET: 'TU_CLIENT_SECRET_AQUI',  // ← Reemplazar
+  CLIENT_ID: 'LEq7Q0IYYAU9A814w3_DYnrzj4B77mQxb4XB2nY85Ak',         // ← Reemplazar
+  CLIENT_SECRET: 'wK5dxAzjQ3_Ijy0l7VEm5424zEyfJkejM0jFzxdcJKY',  // ← Reemplazar
   ...
 }
 ```
