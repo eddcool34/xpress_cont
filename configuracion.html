@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración del Negocio - Xpress Cont</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Animaciones suaves */
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fade-in 0.3s ease-out;
+        }
+
+        /* Mejora del preview del logo */
+        .logo-preview {
+            max-width: 200px;
+            max-height: 200px;
+            object-fit: contain;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Mejoras para dispositivos móviles */
+        @media (max-width: 640px) {
+            .responsive-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .responsive-padding {
+                padding: 1rem;
+            }
+        }
+
+        /* Input file personalizado */
+        .custom-file-input {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .custom-file-input:hover {
+            background-color: #f3f4f6;
+        }
+
+        /* Tabs responsivos */
+        @media (max-width: 768px) {
+            .tab-button {
+                font-size: 0.875rem;
+                padding: 0.5rem 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Función para obtener datos del negocio
+        const obtenerDatosNegocio = () => {
+            const datos = localStorage.getItem('datosNegocio');
+            return datos ? JSON.parse(datos) : {
+                nombre: 'Xpress Cont',
+                direccion: '',
+                telefono: '',
+                email: '',
+                logo: null,
+                horario: '',
+                descripcion: ''
+            };
+        };
+
+        // Función para guardar datos del negocio
+        const guardarDatosNegocio = (datos) => {
+            localStorage.setItem('datosNegocio', JSON.stringify(datos));
+        };
+
+        // Función para obtener usuarios
+        const obtenerUsuarios = () => {
+            const usuarios = localStorage.getItem('usuarios');
+            return usuarios ? JSON.parse(usuarios) : [
+                { id: 1, nombre: 'Administrador', usuario: 'admin', password: 'admin123', rol: 'admin' }
+            ];
+        };
+
+        // Función para guardar usuarios
+        const guardarUsuarios = (usuarios) => {
+            localStorage.setItem('usuarios', JSON.stringify(usuarios));
+        };
+
+        const ConfiguracionNegocio = () => {
+            const [tabActiva, setTabActiva] = useState('negocio');
+            const [datosNegocio, setDatosNegocio] = useState(obtenerDatosNegocio());
+            const [usuarios, setUsuarios] = useState(obtenerUsuarios());
+            const [mostrarFormUsuario, setMostrarFormUsuario] = useState(false);
+            const [usuarioEditando, setUsuarioEditando] = useState(null);
+            const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
+
+            // Estado para el formulario de usuario
+            const [formUsuario, setFormUsuario] = useState({
+                nombre: '',
+                usuario: '',
+                password: '',
+                rol: 'usuario'
+            });
+
+            // Estado para cambio de contraseña
+            const [cambioPassword, setCambioPassword] = useState({
+                usuarioId: null,
+                nuevaPassword: '',
+                confirmarPassword: ''
+            });
+
+            const mostrarMensaje = (tipo, texto) => {
+                setMensaje({ tipo, texto });
+                setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
+            };
+
+            const handleInputChange = (e) => {
+                const { name, value } = e.target;
+                setDatosNegocio(prev => ({
+                    ...prev,
+                    [name]: value
+                }));
+            };
+
+            const handleLogoChange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > 5 * 1024 * 1024) { // 5MB max
+                        mostrarMensaje('error', 'El archivo es demasiado grande. Máximo 5MB.');
+                        return;
+                    }
+
+                    if (!file.type.startsWith('image/')) {
+                        mostrarMensaje('error', 'Por favor selecciona una imagen válida.');
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setDatosNegocio(prev => ({
+                            ...prev,
+                            logo: reader.result
+                        }));
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const guardarConfiguracion = () => {
+                guardarDatosNegocio(datosNegocio);
+                mostrarMensaje('success', '¡Configuración guardada exitosamente!');
+            };
+
+            const eliminarLogo = () => {
+                setDatosNegocio(prev => ({
+                    ...prev,
+                    logo: null
+                }));
+                mostrarMensaje('success', 'Logo eliminado');
+            };
+
+            // Funciones para gestión de usuarios
+            const handleUsuarioInputChange = (e) => {
+                const { name, value } = e.target;
+                setFormUsuario(prev => ({
+                    ...prev,
+                    [name]: value
+                }));
+            };
+
+            const agregarUsuario = () => {
+                if (!formUsuario.nombre || !formUsuario.usuario || !formUsuario.password) {
+                    mostrarMensaje('error', 'Por favor completa todos los campos');
+                    return;
+                }
+
+                // Verificar si el usuario ya existe
+                const existe = usuarios.find(u => u.usuario === formUsuario.usuario);
+                if (existe && !usuarioEditando) {
+                    mostrarMensaje('error', 'El nombre de usuario ya existe');
+                    return;
+                }
+
+                if (usuarioEditando) {
+                    // Editar usuario existente
+                    const usuariosActualizados = usuarios.map(u =>
+                        u.id === usuarioEditando.id
+                            ? { ...u, nombre: formUsuario.nombre, usuario: formUsuario.usuario, rol: formUsuario.rol }
+                            : u
+                    );
+                    setUsuarios(usuariosActualizados);
+                    guardarUsuarios(usuariosActualizados);
+                    mostrarMensaje('success', 'Usuario actualizado correctamente');
+                } else {
+                    // Agregar nuevo usuario
+                    const nuevoUsuario = {
+                        id: Date.now(),
+                        ...formUsuario
+                    };
+                    const nuevosUsuarios = [...usuarios, nuevoUsuario];
+                    setUsuarios(nuevosUsuarios);
+                    guardarUsuarios(nuevosUsuarios);
+                    mostrarMensaje('success', 'Usuario agregado correctamente');
+                }
+
+                // Limpiar formulario
+                setFormUsuario({ nombre: '', usuario: '', password: '', rol: 'usuario' });
+                setMostrarFormUsuario(false);
+                setUsuarioEditando(null);
+            };
+
+            const editarUsuario = (usuario) => {
+                setUsuarioEditando(usuario);
+                setFormUsuario({
+                    nombre: usuario.nombre,
+                    usuario: usuario.usuario,
+                    password: '', // No mostrar password actual
+                    rol: usuario.rol
+                });
+                setMostrarFormUsuario(true);
+            };
+
+            const eliminarUsuario = (id) => {
+                if (usuarios.length === 1) {
+                    mostrarMensaje('error', 'No puedes eliminar el último usuario');
+                    return;
+                }
+
+                if (confirm('¿Estás seguro de eliminar este usuario?')) {
+                    const nuevosUsuarios = usuarios.filter(u => u.id !== id);
+                    setUsuarios(nuevosUsuarios);
+                    guardarUsuarios(nuevosUsuarios);
+                    mostrarMensaje('success', 'Usuario eliminado correctamente');
+                }
+            };
+
+            const cambiarPassword = (usuarioId) => {
+                setCambioPassword({
+                    usuarioId,
+                    nuevaPassword: '',
+                    confirmarPassword: ''
+                });
+            };
+
+            const guardarNuevaPassword = () => {
+                if (!cambioPassword.nuevaPassword || !cambioPassword.confirmarPassword) {
+                    mostrarMensaje('error', 'Por favor completa todos los campos');
+                    return;
+                }
+
+                if (cambioPassword.nuevaPassword !== cambioPassword.confirmarPassword) {
+                    mostrarMensaje('error', 'Las contraseñas no coinciden');
+                    return;
+                }
+
+                if (cambioPassword.nuevaPassword.length < 6) {
+                    mostrarMensaje('error', 'La contraseña debe tener al menos 6 caracteres');
+                    return;
+                }
+
+                const usuariosActualizados = usuarios.map(u =>
+                    u.id === cambioPassword.usuarioId
+                        ? { ...u, password: cambioPassword.nuevaPassword }
+                        : u
+                );
+                setUsuarios(usuariosActualizados);
+                guardarUsuarios(usuariosActualizados);
+                setCambioPassword({ usuarioId: null, nuevaPassword: '', confirmarPassword: '' });
+                mostrarMensaje('success', 'Contraseña actualizada correctamente');
+            };
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-2 sm:p-4 md:p-6">
+                    <div className="max-w-7xl mx-auto">
+                        {/* Header */}
+                        <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-4 sm:mb-6 animate-fade-in">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div>
+                                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-2">
+                                        <i className="fas fa-cog text-indigo-600"></i>
+                                        Configuración del Negocio
+                                    </h1>
+                                    <p className="text-gray-600 mt-2 text-sm sm:text-base">
+                                        Administra la información de tu negocio y usuarios
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => window.location.href = 'index.html'}
+                                    className="w-full sm:w-auto bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition duration-300 flex items-center justify-center gap-2"
+                                >
+                                    <i className="fas fa-arrow-left"></i>
+                                    <span>Volver</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Mensaje de feedback */}
+                        {mensaje.texto && (
+                            <div className={`mb-4 p-4 rounded-lg animate-fade-in ${
+                                mensaje.tipo === 'success' ? 'bg-green-100 text-green-700 border border-green-400' :
+                                'bg-red-100 text-red-700 border border-red-400'
+                            }`}>
+                                <div className="flex items-center gap-2">
+                                    <i className={`fas ${mensaje.tipo === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}`}></i>
+                                    <span>{mensaje.texto}</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Tabs */}
+                        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+                            <div className="flex border-b overflow-x-auto">
+                                <button
+                                    onClick={() => setTabActiva('negocio')}
+                                    className={`tab-button flex-1 min-w-max px-4 sm:px-6 py-3 sm:py-4 font-semibold transition duration-300 ${
+                                        tabActiva === 'negocio'
+                                            ? 'bg-indigo-600 text-white'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    <i className="fas fa-store mr-2"></i>
+                                    Datos del Negocio
+                                </button>
+                                <button
+                                    onClick={() => setTabActiva('usuarios')}
+                                    className={`tab-button flex-1 min-w-max px-4 sm:px-6 py-3 sm:py-4 font-semibold transition duration-300 ${
+                                        tabActiva === 'usuarios'
+                                            ? 'bg-indigo-600 text-white'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    <i className="fas fa-users mr-2"></i>
+                                    Usuarios
+                                </button>
+                            </div>
+
+                            {/* Contenido de las tabs */}
+                            <div className="p-4 sm:p-6 md:p-8">
+                                {/* Tab: Datos del Negocio */}
+                                {tabActiva === 'negocio' && (
+                                    <div className="animate-fade-in space-y-6">
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                            {/* Columna izquierda - Información básica */}
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="block text-gray-700 font-semibold mb-2">
+                                                        <i className="fas fa-building mr-2 text-indigo-600"></i>
+                                                        Nombre del Negocio
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        name="nombre"
+                                                        value={datosNegocio.nombre}
+                                                        onChange={handleInputChange}
+                                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                                                        placeholder="Ej: Xpress Cont"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-gray-700 font-semibold mb-2">
+                                                        <i className="fas fa-map-marker-alt mr-2 text-indigo-600"></i>
+                                                        Dirección
+                                                    </label>
+                                                    <textarea
+                                                        name="direccion"
+                                                        value={datosNegocio.direccion}
+                                                        onChange={handleInputChange}
+                                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                                                        rows="3"
+                                                        placeholder="Calle, número, colonia, ciudad, estado, CP"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-gray-700 font-semibold mb-2">
+                                                        <i className="fas fa-phone mr-2 text-indigo-600"></i>
+                                                        Teléfono
+                                                    </label>
+                                                    <input
+                                                        type="tel"
+                                                        name="telefono"
+                                                        value={datosNegocio.telefono}
+                                                        onChange={handleInputChange}
+                                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                                                        placeholder="Ej: (123) 456-7890"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-gray-700 font-semibold mb-2">
+                                                        <i className="fas fa-envelope mr-2 text-indigo-600"></i>
+                                                        Email
+                                                    </label>
+                                                    <input
+                                                        type="email"
+                                                        name="email"
+                                                        value={datosNegocio.email}
+                                                        onChange={handleInputChange}
+                                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                                                        placeholder="correo@ejemplo.com"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-gray-700 font-semibold mb-2">
+                                                        <i className="fas fa-clock mr-2 text-indigo-600"></i>
+                                                        Horario
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        name="horario"
+                                                        value={datosNegocio.horario}
+                                                        onChange={handleInputChange}
+                                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                                                        placeholder="Ej: Lun-Vie 9:00-18:00, Sáb 9:00-14:00"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-gray-700 font-semibold mb-2">
+                                                        <i className="fas fa-info-circle mr-2 text-indigo-600"></i>
+                                                        Descripción
+                                                    </label>
+                                                    <textarea
+                                                        name="descripcion"
+                                                        value={datosNegocio.descripcion}
+                                                        onChange={handleInputChange}
+                                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                                                        rows="3"
+                                                        placeholder="Breve descripción de tu negocio"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Columna derecha - Logo */}
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="block text-gray-700 font-semibold mb-2">
+                                                        <i className="fas fa-image mr-2 text-indigo-600"></i>
+                                                        Logo del Negocio
+                                                    </label>
+
+                                                    {datosNegocio.logo ? (
+                                                        <div className="space-y-4">
+                                                            <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4 flex justify-center items-center">
+                                                                <img
+                                                                    src={datosNegocio.logo}
+                                                                    alt="Logo del negocio"
+                                                                    className="logo-preview"
+                                                                />
+                                                            </div>
+                                                            <div className="flex flex-col sm:flex-row gap-2">
+                                                                <label className="flex-1 cursor-pointer">
+                                                                    <input
+                                                                        type="file"
+                                                                        accept="image/*"
+                                                                        onChange={handleLogoChange}
+                                                                        className="hidden"
+                                                                    />
+                                                                    <div className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-lg text-center transition duration-300 flex items-center justify-center gap-2">
+                                                                        <i className="fas fa-sync-alt"></i>
+                                                                        <span>Cambiar Logo</span>
+                                                                    </div>
+                                                                </label>
+                                                                <button
+                                                                    onClick={eliminarLogo}
+                                                                    className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg transition duration-300 flex items-center justify-center gap-2"
+                                                                >
+                                                                    <i className="fas fa-trash"></i>
+                                                                    <span>Eliminar</span>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <label className="custom-file-input block border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-indigo-500 hover:bg-indigo-50 transition duration-300">
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                onChange={handleLogoChange}
+                                                                className="hidden"
+                                                            />
+                                                            <div className="text-gray-500">
+                                                                <i className="fas fa-cloud-upload-alt text-5xl mb-4 text-indigo-600"></i>
+                                                                <p className="text-lg font-semibold mb-2">Haz clic para subir tu logo</p>
+                                                                <p className="text-sm">PNG, JPG, GIF hasta 5MB</p>
+                                                            </div>
+                                                        </label>
+                                                    )}
+
+                                                    <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                                        <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                                                            <i className="fas fa-lightbulb"></i>
+                                                            Consejos para tu logo:
+                                                        </h4>
+                                                        <ul className="text-sm text-blue-700 space-y-1">
+                                                            <li>• Usa imágenes de alta calidad</li>
+                                                            <li>• Fondo transparente (PNG) se ve mejor</li>
+                                                            <li>• Tamaño recomendado: 500x500 px</li>
+                                                            <li>• Formato cuadrado funciona mejor</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Botón guardar */}
+                                        <div className="flex justify-end pt-6 border-t border-gray-200">
+                                            <button
+                                                onClick={guardarConfiguracion}
+                                                className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-semibold transition duration-300 flex items-center gap-2 shadow-lg hover:shadow-xl"
+                                            >
+                                                <i className="fas fa-save"></i>
+                                                Guardar Configuración
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Tab: Usuarios */}
+                                {tabActiva === 'usuarios' && (
+                                    <div className="animate-fade-in">
+                                        <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                            <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
+                                                Gestión de Usuarios
+                                            </h2>
+                                            <button
+                                                onClick={() => {
+                                                    setMostrarFormUsuario(!mostrarFormUsuario);
+                                                    setUsuarioEditando(null);
+                                                    setFormUsuario({ nombre: '', usuario: '', password: '', rol: 'usuario' });
+                                                }}
+                                                className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition duration-300 flex items-center justify-center gap-2"
+                                            >
+                                                <i className="fas fa-plus"></i>
+                                                Agregar Usuario
+                                            </button>
+                                        </div>
+
+                                        {/* Formulario de agregar/editar usuario */}
+                                        {mostrarFormUsuario && (
+                                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 sm:p-6 mb-6 animate-fade-in">
+                                                <h3 className="text-lg font-semibold mb-4 text-gray-800">
+                                                    {usuarioEditando ? 'Editar Usuario' : 'Nuevo Usuario'}
+                                                </h3>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-gray-700 font-semibold mb-2">
+                                                            Nombre Completo
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            name="nombre"
+                                                            value={formUsuario.nombre}
+                                                            onChange={handleUsuarioInputChange}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                                            placeholder="Juan Pérez"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-gray-700 font-semibold mb-2">
+                                                            Usuario
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            name="usuario"
+                                                            value={formUsuario.usuario}
+                                                            onChange={handleUsuarioInputChange}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                                            placeholder="juanperez"
+                                                            disabled={usuarioEditando !== null}
+                                                        />
+                                                    </div>
+                                                    {!usuarioEditando && (
+                                                        <div>
+                                                            <label className="block text-gray-700 font-semibold mb-2">
+                                                                Contraseña
+                                                            </label>
+                                                            <input
+                                                                type="password"
+                                                                name="password"
+                                                                value={formUsuario.password}
+                                                                onChange={handleUsuarioInputChange}
+                                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                                                placeholder="Mínimo 6 caracteres"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    <div>
+                                                        <label className="block text-gray-700 font-semibold mb-2">
+                                                            Rol
+                                                        </label>
+                                                        <select
+                                                            name="rol"
+                                                            value={formUsuario.rol}
+                                                            onChange={handleUsuarioInputChange}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                                        >
+                                                            <option value="usuario">Usuario</option>
+                                                            <option value="admin">Administrador</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div className="mt-4 flex flex-col sm:flex-row gap-2">
+                                                    <button
+                                                        onClick={agregarUsuario}
+                                                        className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-300 flex items-center justify-center gap-2"
+                                                    >
+                                                        <i className="fas fa-check"></i>
+                                                        {usuarioEditando ? 'Actualizar' : 'Agregar'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setMostrarFormUsuario(false);
+                                                            setUsuarioEditando(null);
+                                                            setFormUsuario({ nombre: '', usuario: '', password: '', rol: 'usuario' });
+                                                        }}
+                                                        className="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition duration-300 flex items-center justify-center gap-2"
+                                                    >
+                                                        <i className="fas fa-times"></i>
+                                                        Cancelar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Lista de usuarios */}
+                                        <div className="space-y-4">
+                                            {usuarios.map(usuario => (
+                                                <div key={usuario.id} className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 shadow-sm hover:shadow-md transition duration-300">
+                                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center gap-3 mb-2">
+                                                                <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                                                                    <i className="fas fa-user text-indigo-600 text-xl"></i>
+                                                                </div>
+                                                                <div>
+                                                                    <h3 className="text-lg font-semibold text-gray-800">{usuario.nombre}</h3>
+                                                                    <p className="text-gray-600">@{usuario.usuario}</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="ml-15 flex items-center gap-2">
+                                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                                                    usuario.rol === 'admin'
+                                                                        ? 'bg-purple-100 text-purple-800'
+                                                                        : 'bg-blue-100 text-blue-800'
+                                                                }`}>
+                                                                    <i className={`fas ${usuario.rol === 'admin' ? 'fa-crown' : 'fa-user'} mr-1`}></i>
+                                                                    {usuario.rol === 'admin' ? 'Administrador' : 'Usuario'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                                                            {cambioPassword.usuarioId === usuario.id ? (
+                                                                <div className="w-full animate-fade-in">
+                                                                    <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                                                                        <input
+                                                                            type="password"
+                                                                            placeholder="Nueva contraseña"
+                                                                            value={cambioPassword.nuevaPassword}
+                                                                            onChange={(e) => setCambioPassword(prev => ({
+                                                                                ...prev,
+                                                                                nuevaPassword: e.target.value
+                                                                            }))}
+                                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                                                        />
+                                                                        <input
+                                                                            type="password"
+                                                                            placeholder="Confirmar contraseña"
+                                                                            value={cambioPassword.confirmarPassword}
+                                                                            onChange={(e) => setCambioPassword(prev => ({
+                                                                                ...prev,
+                                                                                confirmarPassword: e.target.value
+                                                                            }))}
+                                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                                                        />
+                                                                        <div className="flex gap-2">
+                                                                            <button
+                                                                                onClick={guardarNuevaPassword}
+                                                                                className="flex-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm transition duration-300"
+                                                                            >
+                                                                                <i className="fas fa-check mr-1"></i>
+                                                                                Guardar
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => setCambioPassword({ usuarioId: null, nuevaPassword: '', confirmarPassword: '' })}
+                                                                                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-sm transition duration-300"
+                                                                            >
+                                                                                <i className="fas fa-times mr-1"></i>
+                                                                                Cancelar
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <>
+                                                                    <button
+                                                                        onClick={() => cambiarPassword(usuario.id)}
+                                                                        className="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition duration-300 text-sm flex items-center justify-center gap-2"
+                                                                    >
+                                                                        <i className="fas fa-key"></i>
+                                                                        <span className="hidden sm:inline">Cambiar</span> Contraseña
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => editarUsuario(usuario)}
+                                                                        className="flex-1 sm:flex-initial bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 rounded-lg transition duration-300 text-sm flex items-center justify-center gap-2"
+                                                                    >
+                                                                        <i className="fas fa-edit"></i>
+                                                                        <span className="hidden sm:inline">Editar</span>
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => eliminarUsuario(usuario.id)}
+                                                                        className="flex-1 sm:flex-initial bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg transition duration-300 text-sm flex items-center justify-center gap-2"
+                                                                        disabled={usuarios.length === 1}
+                                                                    >
+                                                                        <i className="fas fa-trash"></i>
+                                                                        <span className="hidden sm:inline">Eliminar</span>
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {usuarios.length === 0 && (
+                                            <div className="text-center py-12 text-gray-500">
+                                                <i className="fas fa-users text-6xl mb-4 opacity-50"></i>
+                                                <p className="text-lg">No hay usuarios registrados</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Renderizar la aplicación
+        ReactDOM.render(<ConfiguracionNegocio />, document.getElementById('root'));
+    </script>
+</body>
+</html>
