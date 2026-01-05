@@ -90,6 +90,20 @@
         const CONTRASEÑA_SISTEMA = 'xpress2025'; // ⚠️ Cambiar por una contraseña segura
         const FONDO_INICIAL_DEFAULT = 1000;
 
+        // ========== CONFIGURACIÓN INICIAL DEL NEGOCIO ==========
+        const CONFIG_NEGOCIO_DEFAULT = {
+            nombreNegocio: 'Xpress Cont',
+            direccion: '',
+            telefono: '',
+            rfc: '',
+            logo: null, // Base64 de la imagen
+            paqueteriasEnvio: ['fedex', 'estafeta', 'dhl'],
+            paqueteriasEntrega: ['mercado libre', 'amazon', 'shein', 'temu', 'ali express', 'otra'],
+            usuarios: [
+                { id: 'admin', nombre: 'Administrador', usuario: 'admin', contraseña: 'admin123', rol: 'admin' }
+            ]
+        };
+
         // Denominaciones de billetes y monedas mexicanas
         const DENOMINACIONES = [
             { valor: 1000, nombre: '$1000' },
@@ -576,6 +590,53 @@
                 20: 0,
                 monedas: 0
             });
+
+            // ========== Estados para Configuración del Negocio ==========
+            const [configNegocio, setConfigNegocio] = useState(() => {
+                const saved = localStorage.getItem('configNegocio');
+                return saved ? JSON.parse(saved) : CONFIG_NEGOCIO_DEFAULT;
+            });
+            const [showConfigModal, setShowConfigModal] = useState(false);
+            const [configTab, setConfigTab] = useState('general'); // 'general', 'usuarios', 'paqueterias'
+            const [editandoUsuario, setEditandoUsuario] = useState(null);
+            const [formUsuario, setFormUsuario] = useState({
+                nombre: '',
+                usuario: '',
+                contraseña: '',
+                rol: 'cajero'
+            });
+            const [nuevaPaqueteriaEnvio, setNuevaPaqueteriaEnvio] = useState('');
+            const [nuevaPaqueteriaEntrega, setNuevaPaqueteriaEntrega] = useState('');
+
+            // Función para guardar configuración
+            const guardarConfigNegocio = (nuevaConfig) => {
+                setConfigNegocio(nuevaConfig);
+                localStorage.setItem('configNegocio', JSON.stringify(nuevaConfig));
+            };
+
+            // Función para manejar carga de logo
+            const handleLogoUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > 500000) { // 500KB max
+                        showNotification('La imagen debe ser menor a 500KB', 'error');
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        guardarConfigNegocio({
+                            ...configNegocio,
+                            logo: reader.result
+                        });
+                        showNotification('Logo actualizado correctamente');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            // Obtener paqueterías dinámicas
+            const getPaqueteriasEnvio = () => configNegocio.paqueteriasEnvio || PAQUETERIAS;
+            const getPaqueteriasEntrega = () => configNegocio.paqueteriasEntrega || PAQUETERIAS_ENTREGA;
 
             const [formData, setFormData] = useState({
                 nombreRemitente: '',
@@ -1386,7 +1447,22 @@
             const generarPDF = (venta) => {
                 try {
                     const doc = new jsPDF();
-                    
+
+                    // Obtener configuración del negocio
+                    const config = JSON.parse(localStorage.getItem('configNegocio')) || CONFIG_NEGOCIO_DEFAULT;
+
+                    let yStart = 10;
+
+                    // Logo si existe
+                    if (config.logo) {
+                        try {
+                            doc.addImage(config.logo, 'PNG', 20, 8, 25, 25);
+                            yStart = 15;
+                        } catch (e) {
+                            console.log('No se pudo agregar el logo');
+                        }
+                    }
+
                     // Fecha en la parte superior derecha
                     doc.setFontSize(10);
                     doc.setFont(undefined, 'normal');
@@ -1395,62 +1471,80 @@
                         month: 'long',
                         day: 'numeric'
                     });
-                    doc.text(fechaActual, 190, 10, { align: 'right' });
+                    doc.text(fechaActual, 190, yStart, { align: 'right' });
 
-                    doc.setFontSize(20);
+                    // Nombre del negocio
+                    doc.setFontSize(18);
                     doc.setFont(undefined, 'bold');
-                    doc.text('COMPROBANTE DE ENVÍO - XPRESS CONT', 105, 30, { align: 'center' });
-                    
+                    const nombreNegocio = config.nombreNegocio || 'Xpress Cont';
+                    doc.text(`COMPROBANTE DE ENVÍO - ${nombreNegocio.toUpperCase()}`, 105, 30, { align: 'center' });
+
+                    // Datos del negocio debajo del título
+                    doc.setFontSize(9);
+                    doc.setFont(undefined, 'normal');
+                    let yInfo = 36;
+                    if (config.direccion) {
+                        doc.text(config.direccion, 105, yInfo, { align: 'center' });
+                        yInfo += 4;
+                    }
+                    if (config.telefono || config.rfc) {
+                        const infoLinea = [
+                            config.telefono ? `Tel: ${config.telefono}` : '',
+                            config.rfc ? `RFC: ${config.rfc}` : ''
+                        ].filter(Boolean).join(' | ');
+                        doc.text(infoLinea, 105, yInfo, { align: 'center' });
+                    }
+
                     doc.setDrawColor(0, 0, 0);
-                    doc.line(20, 35, 190, 35);
+                    doc.line(20, 42, 190, 42);
 
                     if (venta.tipoOperacion === 'devolucion') {
                         doc.setFontSize(14);
                         doc.setFont(undefined, 'bold');
-                        doc.text('DEVOLUCIÓN', 20, 45);
-                        
+                        doc.text('DEVOLUCIÓN', 20, 50);
+
                         doc.setFontSize(11);
                         doc.setFont(undefined, 'normal');
-                        doc.text(`Remitente: ${venta.nombreRemitente}`, 20, 52);
-                        doc.text(`Teléfono: ${venta.telefonoRemitente}`, 20, 58);
-                        doc.text(`Paquetería: ${venta.paqueteriaDevolucion.toUpperCase()}`, 20, 64);
-                        doc.text(`No. de Guía: ${venta.numeroGuia}`, 20, 70);
+                        doc.text(`Remitente: ${venta.nombreRemitente}`, 20, 57);
+                        doc.text(`Teléfono: ${venta.telefonoRemitente}`, 20, 63);
+                        doc.text(`Paquetería: ${venta.paqueteriaDevolucion.toUpperCase()}`, 20, 69);
+                        doc.text(`No. de Guía: ${venta.numeroGuia}`, 20, 75);
                     } else {
                         doc.setFontSize(14);
                         doc.setFont(undefined, 'bold');
-                        doc.text('REMITENTE', 20, 45);
-                        
+                        doc.text('REMITENTE', 20, 50);
+
                         doc.setFontSize(11);
                         doc.setFont(undefined, 'normal');
-                        doc.text(`Nombre: ${venta.nombreRemitente}`, 20, 52);
-                        doc.text(`Teléfono: ${venta.telefonoRemitente}`, 20, 58);
+                        doc.text(`Nombre: ${venta.nombreRemitente}`, 20, 57);
+                        doc.text(`Teléfono: ${venta.telefonoRemitente}`, 20, 63);
 
                         doc.setFontSize(14);
                         doc.setFont(undefined, 'bold');
-                        doc.text('DESTINATARIO', 20, 70);
-                        
+                        doc.text('DESTINATARIO', 20, 75);
+
                         doc.setFontSize(11);
                         doc.setFont(undefined, 'normal');
-                        doc.text(`Nombre: ${venta.nombreDestinatario}`, 20, 77);
-                        doc.text(`Teléfono: ${venta.telefonoDestinatario}`, 20, 83);
-                        doc.text(`Dirección: ${venta.direccion} #${venta.numero}`, 20, 89);
-                        doc.text(`Colonia: ${venta.colonia}`, 20, 95);
-                        doc.text(`C.P.: ${venta.codigoPostal}`, 20, 101);
-                        doc.text(`Estado: ${venta.estado}`, 20, 107);
-                        doc.text(`País: ${venta.pais}`, 20, 113);
+                        doc.text(`Nombre: ${venta.nombreDestinatario}`, 20, 82);
+                        doc.text(`Teléfono: ${venta.telefonoDestinatario}`, 20, 88);
+                        doc.text(`Dirección: ${venta.direccion} #${venta.numero}`, 20, 94);
+                        doc.text(`Colonia: ${venta.colonia}`, 20, 100);
+                        doc.text(`C.P.: ${venta.codigoPostal}`, 20, 106);
+                        doc.text(`Estado: ${venta.estado}`, 20, 112);
+                        doc.text(`País: ${venta.pais}`, 20, 118);
 
                         doc.setFontSize(14);
                         doc.setFont(undefined, 'bold');
-                        doc.text('DETALLES DEL SERVICIO', 20, 125);
-                        
+                        doc.text('DETALLES DEL SERVICIO', 20, 130);
+
                         doc.setFontSize(11);
                         doc.setFont(undefined, 'normal');
-                        doc.text(`Paquetería: ${venta.paqueteria.toUpperCase()}`, 20, 132);
-                        doc.text(`Tipo de Servicio: ${venta.tipoServicio.toUpperCase()}`, 20, 138);
+                        doc.text(`Paquetería: ${venta.paqueteria.toUpperCase()}`, 20, 137);
+                        doc.text(`Tipo de Servicio: ${venta.tipoServicio.toUpperCase()}`, 20, 143);
 
                         // Tabla de declaración si existe
                         if (venta.declaraciones && venta.declaraciones.length > 0) {
-                            let yPos = 150;
+                            let yPos = 155;
                             doc.setFontSize(14);
                             doc.setFont(undefined, 'bold');
                             doc.text('DECLARACIÓN DE CONTENIDO', 20, yPos);
@@ -1566,6 +1660,10 @@
                 try {
                     const doc = new jsPDF({ format: [80, 250] });
 
+                    // Obtener configuración del negocio
+                    const config = JSON.parse(localStorage.getItem('configNegocio')) || CONFIG_NEGOCIO_DEFAULT;
+                    const nombreNegocio = config.nombreNegocio || 'Xpress Cont';
+
                     doc.setFontSize(12);
                     doc.setFont(undefined, 'bold');
 
@@ -1575,78 +1673,83 @@
                     } else {
                         doc.text('TICKET DE PAGO', 40, 10, { align: 'center' });
                     }
-                    doc.text('PAQUETERÍA XPRESS CONT', 40, 16, { align: 'center' });
+                    doc.text(nombreNegocio.toUpperCase(), 40, 16, { align: 'center' });
+
+                    doc.setFontSize(7);
+                    doc.setFont(undefined, 'normal');
+                    if (config.telefono) {
+                        doc.text(`Tel: ${config.telefono}`, 40, 20, { align: 'center' });
+                    }
 
                     doc.setFontSize(8);
-                    doc.setFont(undefined, 'normal');
-                    doc.text('------------------------', 40, 21, { align: 'center' });
+                    doc.text('------------------------', 40, 24, { align: 'center' });
 
-                    doc.text(`Folio: ${venta.id}`, 5, 26);
-                    doc.text(`Fecha: ${new Date(venta.fecha).toLocaleDateString('es-MX')}`, 5, 31);
-                    doc.text(`Hora: ${new Date(venta.fecha).toLocaleTimeString('es-MX')}`, 5, 36);
+                    doc.text(`Folio: ${venta.id}`, 5, 29);
+                    doc.text(`Fecha: ${new Date(venta.fecha).toLocaleDateString('es-MX')}`, 5, 34);
+                    doc.text(`Hora: ${new Date(venta.fecha).toLocaleTimeString('es-MX')}`, 5, 39);
 
-                    doc.text('------------------------', 40, 41, { align: 'center' });
+                    doc.text('------------------------', 40, 44, { align: 'center' });
 
                     // Para entregas, mostrar información diferente
                     if (venta.tipoOperacion === 'entrega') {
                         doc.setFont(undefined, 'bold');
-                        doc.text('DESTINATARIO', 5, 46);
+                        doc.text('DESTINATARIO', 5, 49);
                         doc.setFont(undefined, 'normal');
-                        doc.text(`${venta.nombreEntrega}`, 5, 51);
+                        doc.text(`${venta.nombreEntrega}`, 5, 54);
 
-                        doc.text('------------------------', 40, 56, { align: 'center' });
+                        doc.text('------------------------', 40, 59, { align: 'center' });
 
                         doc.setFont(undefined, 'bold');
-                        doc.text('PAQUETERÍA', 5, 61);
+                        doc.text('PAQUETERÍA', 5, 64);
                         doc.setFont(undefined, 'normal');
                         const paqEntrega = venta.paqueteriaEntrega ?
                             venta.paqueteriaEntrega.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'N/A';
-                        doc.text(paqEntrega, 5, 66);
+                        doc.text(paqEntrega, 5, 69);
 
-                        doc.text('------------------------', 40, 71, { align: 'center' });
+                        doc.text('------------------------', 40, 74, { align: 'center' });
 
                         doc.setFont(undefined, 'bold');
-                        doc.text('FECHAS', 5, 76);
+                        doc.text('FECHAS', 5, 79);
                         doc.setFont(undefined, 'normal');
-                        doc.text(`Registro: ${venta.fechaRegistro || new Date(venta.fecha).toLocaleDateString('es-MX')}`, 5, 81);
+                        doc.text(`Registro: ${venta.fechaRegistro || new Date(venta.fecha).toLocaleDateString('es-MX')}`, 5, 84);
                         if (venta.estadoEntrega === 'entregado' && venta.fechaLiberacion) {
-                            doc.text(`Entregado: ${venta.fechaLiberacion}`, 5, 86);
+                            doc.text(`Entregado: ${venta.fechaLiberacion}`, 5, 89);
                         } else {
-                            doc.text('Estado: PENDIENTE', 5, 86);
+                            doc.text('Estado: PENDIENTE', 5, 89);
                         }
 
-                        doc.text('------------------------', 40, 91, { align: 'center' });
+                        doc.text('------------------------', 40, 94, { align: 'center' });
                         doc.setFontSize(7);
-                        doc.text('¡Gracias!', 40, 96, { align: 'center' });
+                        doc.text('¡Gracias!', 40, 99, { align: 'center' });
                     } else {
                         // Código original para envíos y devoluciones
                         doc.setFont(undefined, 'bold');
-                        doc.text('CLIENTE', 5, 46);
+                        doc.text('CLIENTE', 5, 49);
                         doc.setFont(undefined, 'normal');
-                        doc.text(`${venta.nombreRemitente}`, 5, 51);
-                        doc.text(`Tel: ${venta.telefonoRemitente}`, 5, 56);
+                        doc.text(`${venta.nombreRemitente}`, 5, 54);
+                        doc.text(`Tel: ${venta.telefonoRemitente}`, 5, 59);
 
-                        doc.text('------------------------', 40, 61, { align: 'center' });
+                        doc.text('------------------------', 40, 64, { align: 'center' });
 
                         doc.setFont(undefined, 'bold');
-                        doc.text('SERVICIO', 5, 66);
+                        doc.text('SERVICIO', 5, 69);
                         doc.setFont(undefined, 'normal');
 
                         if (venta.tipoOperacion === 'devolucion') {
-                            doc.text('DEVOLUCIÓN', 5, 71);
-                            doc.text(`Paquetería: ${venta.paqueteriaDevolucion.toUpperCase()}`, 5, 76);
-                            doc.text(`Guía: ${venta.numeroGuia}`, 5, 81);
+                            doc.text('DEVOLUCIÓN', 5, 74);
+                            doc.text(`Paquetería: ${venta.paqueteriaDevolucion.toUpperCase()}`, 5, 79);
+                            doc.text(`Guía: ${venta.numeroGuia}`, 5, 84);
                         } else {
-                            doc.text(`${venta.paqueteria.toUpperCase()}`, 5, 71);
-                            doc.text(`Tipo: ${venta.tipoServicio}`, 5, 76);
-                            doc.text(`Destino: ${venta.estado}`, 5, 81);
+                            doc.text(`${venta.paqueteria.toUpperCase()}`, 5, 74);
+                            doc.text(`Tipo: ${venta.tipoServicio}`, 5, 79);
+                            doc.text(`Destino: ${venta.estado}`, 5, 84);
                         }
 
-                        doc.text('------------------------', 40, 86, { align: 'center' });
+                        doc.text('------------------------', 40, 89, { align: 'center' });
 
                         doc.setFontSize(7);
                         doc.setFont(undefined, 'normal');
-                        doc.text('¡Gracias por su compra!', 40, 91, { align: 'center' });
+                        doc.text('¡Gracias por su compra!', 40, 94, { align: 'center' });
                     }
 
                     doc.save(`Ticket-${venta.id}.pdf`);
@@ -2392,7 +2495,7 @@
                                                         onChange={handleInputChange}
                                                         className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
                                                     >
-                                                        {PAQUETERIAS_ENTREGA.map(paq => (
+                                                        {getPaqueteriasEntrega().map(paq => (
                                                             <option key={paq} value={paq}>
                                                                 {paq.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                                                             </option>
@@ -2716,12 +2819,21 @@
                         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div dangerouslySetInnerHTML={{ __html: logoSVG }} />
+                                    {configNegocio.logo ? (
+                                        <img src={configNegocio.logo} alt="Logo" className="w-16 h-16 object-contain rounded-lg" />
+                                    ) : (
+                                        <div dangerouslySetInnerHTML={{ __html: logoSVG }} />
+                                    )}
                                     <div>
                                         <h1 className="text-3xl font-bold text-gray-800">
-                                            Sistema Xpress Cont
+                                            Sistema {configNegocio.nombreNegocio || 'Xpress Cont'}
                                         </h1>
-                                        <p className="text-lg text-gray-600">Paquetería Xpress Cont</p>
+                                        <p className="text-lg text-gray-600">Paquetería {configNegocio.nombreNegocio || 'Xpress Cont'}</p>
+                                        {configNegocio.telefono && (
+                                            <p className="text-sm text-gray-500">
+                                                <i className="fas fa-phone mr-1"></i>{configNegocio.telefono}
+                                            </p>
+                                        )}
                                         <p className="text-xs text-green-600 mt-1">
                                             <i className="fas fa-cloud mr-1"></i>
                                             Conectado a Google Sheets
@@ -2831,6 +2943,16 @@
                                 >
                                     <i className="fas fa-list-alt mr-2"></i>Resumen de Cortes
                                 </button>
+                                <button
+                                    onClick={() => setActiveTab('configuracion')}
+                                    className={`flex-1 min-w-max py-4 px-6 text-center font-semibold transition-colors ${
+                                        activeTab === 'configuracion'
+                                            ? 'bg-purple-500 text-white'
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    <i className="fas fa-cog mr-2"></i>Configuración
+                                </button>
                             </div>
                         </div>
 
@@ -2936,7 +3058,7 @@
                                                         onChange={handleInputChange}
                                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                                     >
-                                                        {PAQUETERIAS_ENTREGA.map(paq => (
+                                                        {getPaqueteriasEntrega().map(paq => (
                                                             <option key={paq} value={paq}>
                                                                 {paq.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                                                             </option>
@@ -2969,7 +3091,7 @@
                                                         onChange={handleInputChange}
                                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                                     >
-                                                        {PAQUETERIAS.map(paq => (
+                                                        {getPaqueteriasEnvio().map(paq => (
                                                             <option key={paq} value={paq}>{paq.toUpperCase()}</option>
                                                         ))}
                                                     </select>
@@ -3228,7 +3350,7 @@
                                                             onChange={handleInputChange}
                                                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                                         >
-                                                            {PAQUETERIAS.map(paq => (
+                                                            {getPaqueteriasEnvio().map(paq => (
                                                                 <option key={paq} value={paq}>{paq.toUpperCase()}</option>
                                                             ))}
                                                         </select>
@@ -3911,7 +4033,7 @@
                                             </span>
                                         </div>
                                         <div className="space-y-2">
-                                            {PAQUETERIAS.map(paq => {
+                                            {getPaqueteriasEnvio().map(paq => {
                                                 const count = ventas.filter(v =>
                                                     v.estadoVenta !== 'cancelada' &&
                                                     (v.tipoOperacion === 'devolucion' ? v.paqueteriaDevolucion : v.paqueteria) === paq
@@ -5297,6 +5419,465 @@
                                         </>
                                     );
                                 })()}
+                            </div>
+                        )}
+
+                        {/* Contenido - Configuración */}
+                        {activeTab === 'configuracion' && (
+                            <div className="bg-white rounded-lg shadow-lg p-6">
+                                <h2 className="text-2xl font-bold text-gray-800 mb-6">
+                                    <i className="fas fa-cog mr-2 text-purple-600"></i>Configuración General
+                                </h2>
+
+                                {/* Tabs de configuración */}
+                                <div className="flex border-b mb-6">
+                                    <button
+                                        onClick={() => setConfigTab('general')}
+                                        className={`py-2 px-4 font-medium ${
+                                            configTab === 'general'
+                                                ? 'border-b-2 border-purple-500 text-purple-600'
+                                                : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                    >
+                                        <i className="fas fa-building mr-2"></i>Datos del Negocio
+                                    </button>
+                                    <button
+                                        onClick={() => setConfigTab('usuarios')}
+                                        className={`py-2 px-4 font-medium ${
+                                            configTab === 'usuarios'
+                                                ? 'border-b-2 border-purple-500 text-purple-600'
+                                                : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                    >
+                                        <i className="fas fa-users mr-2"></i>Usuarios
+                                    </button>
+                                    <button
+                                        onClick={() => setConfigTab('paqueterias')}
+                                        className={`py-2 px-4 font-medium ${
+                                            configTab === 'paqueterias'
+                                                ? 'border-b-2 border-purple-500 text-purple-600'
+                                                : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                    >
+                                        <i className="fas fa-truck mr-2"></i>Paqueterías
+                                    </button>
+                                </div>
+
+                                {/* Tab: Datos del Negocio */}
+                                {configTab === 'general' && (
+                                    <div className="space-y-6">
+                                        {/* Logo */}
+                                        <div className="bg-gray-50 p-6 rounded-lg border">
+                                            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                                                <i className="fas fa-image mr-2"></i>Logo del Negocio
+                                            </h3>
+                                            <div className="flex items-center gap-6">
+                                                <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-white overflow-hidden">
+                                                    {configNegocio.logo ? (
+                                                        <img src={configNegocio.logo} alt="Logo" className="w-full h-full object-contain" />
+                                                    ) : (
+                                                        <div className="text-center text-gray-400">
+                                                            <i className="fas fa-image text-3xl mb-2"></i>
+                                                            <p className="text-xs">Sin logo</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={handleLogoUpload}
+                                                        className="hidden"
+                                                        id="logo-upload"
+                                                    />
+                                                    <label
+                                                        htmlFor="logo-upload"
+                                                        className="cursor-pointer bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors inline-block"
+                                                    >
+                                                        <i className="fas fa-upload mr-2"></i>Subir Logo
+                                                    </label>
+                                                    {configNegocio.logo && (
+                                                        <button
+                                                            onClick={() => {
+                                                                guardarConfigNegocio({ ...configNegocio, logo: null });
+                                                                showNotification('Logo eliminado');
+                                                            }}
+                                                            className="ml-2 text-red-500 hover:text-red-700"
+                                                        >
+                                                            <i className="fas fa-trash"></i>
+                                                        </button>
+                                                    )}
+                                                    <p className="text-xs text-gray-500 mt-2">Formatos: JPG, PNG. Máximo 500KB</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Datos del negocio */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    <i className="fas fa-store mr-2"></i>Nombre del Negocio
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={configNegocio.nombreNegocio}
+                                                    onChange={(e) => guardarConfigNegocio({ ...configNegocio, nombreNegocio: e.target.value })}
+                                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                                                    placeholder="Nombre de tu negocio"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    <i className="fas fa-id-card mr-2"></i>RFC
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={configNegocio.rfc}
+                                                    onChange={(e) => guardarConfigNegocio({ ...configNegocio, rfc: e.target.value.toUpperCase() })}
+                                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                                                    placeholder="RFC del negocio"
+                                                    maxLength={13}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    <i className="fas fa-phone mr-2"></i>Teléfono
+                                                </label>
+                                                <input
+                                                    type="tel"
+                                                    value={configNegocio.telefono}
+                                                    onChange={(e) => guardarConfigNegocio({ ...configNegocio, telefono: e.target.value })}
+                                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                                                    placeholder="Teléfono de contacto"
+                                                />
+                                            </div>
+                                            <div className="md:col-span-2">
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    <i className="fas fa-map-marker-alt mr-2"></i>Dirección
+                                                </label>
+                                                <textarea
+                                                    value={configNegocio.direccion}
+                                                    onChange={(e) => guardarConfigNegocio({ ...configNegocio, direccion: e.target.value })}
+                                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                                                    placeholder="Dirección completa del negocio"
+                                                    rows={2}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                                            <p className="text-sm text-green-700">
+                                                <i className="fas fa-check-circle mr-2"></i>
+                                                Los cambios se guardan automáticamente y se reflejarán en los PDFs generados.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Tab: Usuarios */}
+                                {configTab === 'usuarios' && (
+                                    <div className="space-y-6">
+                                        {/* Formulario agregar/editar usuario */}
+                                        <div className="bg-gray-50 p-6 rounded-lg border">
+                                            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                                                <i className="fas fa-user-plus mr-2"></i>
+                                                {editandoUsuario ? 'Editar Usuario' : 'Agregar Nuevo Usuario'}
+                                            </h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Nombre Completo</label>
+                                                    <input
+                                                        type="text"
+                                                        value={formUsuario.nombre}
+                                                        onChange={(e) => setFormUsuario({ ...formUsuario, nombre: e.target.value })}
+                                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                                                        placeholder="Nombre del usuario"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Usuario</label>
+                                                    <input
+                                                        type="text"
+                                                        value={formUsuario.usuario}
+                                                        onChange={(e) => setFormUsuario({ ...formUsuario, usuario: e.target.value })}
+                                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                                                        placeholder="Nombre de usuario"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
+                                                    <input
+                                                        type="password"
+                                                        value={formUsuario.contraseña}
+                                                        onChange={(e) => setFormUsuario({ ...formUsuario, contraseña: e.target.value })}
+                                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                                                        placeholder={editandoUsuario ? "Dejar vacío para no cambiar" : "Contraseña"}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Rol</label>
+                                                    <select
+                                                        value={formUsuario.rol}
+                                                        onChange={(e) => setFormUsuario({ ...formUsuario, rol: e.target.value })}
+                                                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                                                    >
+                                                        <option value="cajero">Cajero</option>
+                                                        <option value="admin">Administrador</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div className="mt-4 flex gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        if (!formUsuario.nombre || !formUsuario.usuario) {
+                                                            showNotification('Complete nombre y usuario', 'error');
+                                                            return;
+                                                        }
+                                                        if (!editandoUsuario && !formUsuario.contraseña) {
+                                                            showNotification('La contraseña es requerida', 'error');
+                                                            return;
+                                                        }
+
+                                                        let nuevosUsuarios;
+                                                        if (editandoUsuario) {
+                                                            nuevosUsuarios = configNegocio.usuarios.map(u =>
+                                                                u.id === editandoUsuario
+                                                                    ? {
+                                                                        ...u,
+                                                                        nombre: formUsuario.nombre,
+                                                                        usuario: formUsuario.usuario,
+                                                                        rol: formUsuario.rol,
+                                                                        ...(formUsuario.contraseña ? { contraseña: formUsuario.contraseña } : {})
+                                                                    }
+                                                                    : u
+                                                            );
+                                                        } else {
+                                                            nuevosUsuarios = [
+                                                                ...configNegocio.usuarios,
+                                                                {
+                                                                    id: `USR-${Date.now()}`,
+                                                                    ...formUsuario
+                                                                }
+                                                            ];
+                                                        }
+
+                                                        guardarConfigNegocio({ ...configNegocio, usuarios: nuevosUsuarios });
+                                                        setFormUsuario({ nombre: '', usuario: '', contraseña: '', rol: 'cajero' });
+                                                        setEditandoUsuario(null);
+                                                        showNotification(editandoUsuario ? 'Usuario actualizado' : 'Usuario agregado');
+                                                    }}
+                                                    className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600"
+                                                >
+                                                    <i className={`fas ${editandoUsuario ? 'fa-save' : 'fa-plus'} mr-2`}></i>
+                                                    {editandoUsuario ? 'Guardar Cambios' : 'Agregar Usuario'}
+                                                </button>
+                                                {editandoUsuario && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setFormUsuario({ nombre: '', usuario: '', contraseña: '', rol: 'cajero' });
+                                                            setEditandoUsuario(null);
+                                                        }}
+                                                        className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
+                                                    >
+                                                        <i className="fas fa-times mr-2"></i>Cancelar
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Lista de usuarios */}
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                                                <i className="fas fa-users mr-2"></i>Usuarios Registrados
+                                            </h3>
+                                            <div className="overflow-x-auto">
+                                                <table className="min-w-full bg-white border rounded-lg">
+                                                    <thead className="bg-gray-50">
+                                                        <tr>
+                                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuario</th>
+                                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
+                                                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-200">
+                                                        {configNegocio.usuarios.map((usuario) => (
+                                                            <tr key={usuario.id} className="hover:bg-gray-50">
+                                                                <td className="px-4 py-3 text-sm text-gray-900">{usuario.nombre}</td>
+                                                                <td className="px-4 py-3 text-sm text-gray-600">{usuario.usuario}</td>
+                                                                <td className="px-4 py-3">
+                                                                    <span className={`px-2 py-1 text-xs rounded-full ${
+                                                                        usuario.rol === 'admin'
+                                                                            ? 'bg-purple-100 text-purple-700'
+                                                                            : 'bg-blue-100 text-blue-700'
+                                                                    }`}>
+                                                                        {usuario.rol === 'admin' ? 'Administrador' : 'Cajero'}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-center">
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setEditandoUsuario(usuario.id);
+                                                                            setFormUsuario({
+                                                                                nombre: usuario.nombre,
+                                                                                usuario: usuario.usuario,
+                                                                                contraseña: '',
+                                                                                rol: usuario.rol
+                                                                            });
+                                                                        }}
+                                                                        className="text-blue-500 hover:text-blue-700 mr-3"
+                                                                    >
+                                                                        <i className="fas fa-edit"></i>
+                                                                    </button>
+                                                                    {usuario.id !== 'admin' && (
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                if (confirm('¿Está seguro de eliminar este usuario?')) {
+                                                                                    const nuevosUsuarios = configNegocio.usuarios.filter(u => u.id !== usuario.id);
+                                                                                    guardarConfigNegocio({ ...configNegocio, usuarios: nuevosUsuarios });
+                                                                                    showNotification('Usuario eliminado');
+                                                                                }
+                                                                            }}
+                                                                            className="text-red-500 hover:text-red-700"
+                                                                        >
+                                                                            <i className="fas fa-trash"></i>
+                                                                        </button>
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Tab: Paqueterías */}
+                                {configTab === 'paqueterias' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Paqueterías de Envío */}
+                                        <div className="bg-gray-50 p-6 rounded-lg border">
+                                            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                                                <i className="fas fa-shipping-fast mr-2 text-blue-500"></i>Paqueterías de Envío
+                                            </h3>
+                                            <p className="text-sm text-gray-500 mb-4">Para envíos y devoluciones</p>
+
+                                            {/* Agregar nueva */}
+                                            <div className="flex gap-2 mb-4">
+                                                <input
+                                                    type="text"
+                                                    value={nuevaPaqueteriaEnvio}
+                                                    onChange={(e) => setNuevaPaqueteriaEnvio(e.target.value)}
+                                                    className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                                                    placeholder="Nueva paquetería..."
+                                                />
+                                                <button
+                                                    onClick={() => {
+                                                        if (!nuevaPaqueteriaEnvio.trim()) return;
+                                                        const nueva = nuevaPaqueteriaEnvio.toLowerCase().trim();
+                                                        if (configNegocio.paqueteriasEnvio.includes(nueva)) {
+                                                            showNotification('Esta paquetería ya existe', 'error');
+                                                            return;
+                                                        }
+                                                        guardarConfigNegocio({
+                                                            ...configNegocio,
+                                                            paqueteriasEnvio: [...configNegocio.paqueteriasEnvio, nueva]
+                                                        });
+                                                        setNuevaPaqueteriaEnvio('');
+                                                        showNotification('Paquetería agregada');
+                                                    }}
+                                                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+                                                >
+                                                    <i className="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+
+                                            {/* Lista */}
+                                            <ul className="space-y-2">
+                                                {configNegocio.paqueteriasEnvio.map((paq, index) => (
+                                                    <li key={index} className="flex items-center justify-between bg-white p-3 rounded-lg border">
+                                                        <span className="font-medium capitalize">{paq}</span>
+                                                        <button
+                                                            onClick={() => {
+                                                                const nuevas = configNegocio.paqueteriasEnvio.filter((_, i) => i !== index);
+                                                                guardarConfigNegocio({ ...configNegocio, paqueteriasEnvio: nuevas });
+                                                                showNotification('Paquetería eliminada');
+                                                            }}
+                                                            className="text-red-500 hover:text-red-700"
+                                                        >
+                                                            <i className="fas fa-times"></i>
+                                                        </button>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+
+                                        {/* Paqueterías de Entrega */}
+                                        <div className="bg-gray-50 p-6 rounded-lg border">
+                                            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                                                <i className="fas fa-box mr-2 text-purple-500"></i>Paqueterías de Entrega
+                                            </h3>
+                                            <p className="text-sm text-gray-500 mb-4">Para recepción de paquetes</p>
+
+                                            {/* Agregar nueva */}
+                                            <div className="flex gap-2 mb-4">
+                                                <input
+                                                    type="text"
+                                                    value={nuevaPaqueteriaEntrega}
+                                                    onChange={(e) => setNuevaPaqueteriaEntrega(e.target.value)}
+                                                    className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                                                    placeholder="Nueva paquetería..."
+                                                />
+                                                <button
+                                                    onClick={() => {
+                                                        if (!nuevaPaqueteriaEntrega.trim()) return;
+                                                        const nueva = nuevaPaqueteriaEntrega.toLowerCase().trim();
+                                                        if (configNegocio.paqueteriasEntrega.includes(nueva)) {
+                                                            showNotification('Esta paquetería ya existe', 'error');
+                                                            return;
+                                                        }
+                                                        guardarConfigNegocio({
+                                                            ...configNegocio,
+                                                            paqueteriasEntrega: [...configNegocio.paqueteriasEntrega, nueva]
+                                                        });
+                                                        setNuevaPaqueteriaEntrega('');
+                                                        showNotification('Paquetería agregada');
+                                                    }}
+                                                    className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600"
+                                                >
+                                                    <i className="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+
+                                            {/* Lista */}
+                                            <ul className="space-y-2">
+                                                {configNegocio.paqueteriasEntrega.map((paq, index) => (
+                                                    <li key={index} className="flex items-center justify-between bg-white p-3 rounded-lg border">
+                                                        <span className="font-medium capitalize">{paq}</span>
+                                                        <button
+                                                            onClick={() => {
+                                                                const nuevas = configNegocio.paqueteriasEntrega.filter((_, i) => i !== index);
+                                                                guardarConfigNegocio({ ...configNegocio, paqueteriasEntrega: nuevas });
+                                                                showNotification('Paquetería eliminada');
+                                                            }}
+                                                            className="text-red-500 hover:text-red-700"
+                                                        >
+                                                            <i className="fas fa-times"></i>
+                                                        </button>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+
+                                        <div className="md:col-span-2 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                            <p className="text-sm text-blue-700">
+                                                <i className="fas fa-info-circle mr-2"></i>
+                                                Las paqueterías configuradas aparecerán en los selectores del formulario de registro y en los PDFs generados.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
